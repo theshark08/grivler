@@ -1,0 +1,21 @@
+titlu:
+  GRIVLER
+
+descriere:
+  Un sistem de sincronizare stick usb - cloud drive cu autentificare bazata pe rfid.
+
+echipa:
+  Plangu Ioan Carol
+  Teodor Niculae
+
+categorie:
+  SOFTWARE
+
+link:
+  https://github.com/theshark08/grivler
+
+
+proiecte folosite:
+
+https://code.google.com/p/yhy632/
+https://github.com/Grive/grive
