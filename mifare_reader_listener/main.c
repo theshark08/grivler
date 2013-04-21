@@ -1,6 +1,9 @@
 #include "mifare.h"
 #include <sys/time.h>
 
+#define RETRY_TIMER 5
+
+
 unsigned long timestamp_sec() {
   struct timeval tv;
   gettimeofday(&tv,NULL);
@@ -64,7 +67,7 @@ int main(int argc, char * argv[]) {
     while (1) {
      count_recieved = mifare_select(fd, &cardtype, serial);
 
-     if( access("/dev/sdb1", R_OK) == 0){
+     if( access("/dev/sda1", R_OK) == 0){
        if( usb_status == 0 ){
           beep(fd, 5); beep(fd, 5); beep(fd, 5);
           usb_status = 1;
@@ -77,7 +80,7 @@ int main(int argc, char * argv[]) {
          serial_to_matrix_iii(cardtype, serial, count_recieved, matrix_serial);
 
          // wait 5 seconds if it's the same card serial
-         if( strcmp( prev_card, matrix_serial ) == 0 && timestamp_sec() - prev_timestamp < 5 ) {
+         if( strcmp( prev_card, matrix_serial ) == 0 && timestamp_sec() - prev_timestamp < RETRY_TIMER ) {
            usleep( 1000 * 100 );
            continue;
          }
@@ -85,51 +88,50 @@ int main(int argc, char * argv[]) {
 
 
          strcpy(prev_card, matrix_serial);
-         prev_timestamp = timestamp_sec();
 
          fprintf(logfd, "\nserial:%s\n",matrix_serial);
 
 
 
+         if( access("/dev/sda1", R_OK) == 0 ){
+           system("mount /dev/sda1 usb");
 
-         if( access("/dev/sdb1", R_OK) == 0 ){
-           system("mount /dev/sdb1 /media/usb");
-           system("ls /media/usb");
-
-           if( access("/media/usb/.griver_token", R_OK) == 0){
-             // auth on usb
-             // move .grive on card
+           if( access("usb/.grivler_token", R_OK) == 0 ){
              printf(" STORE TOKEN TO CARD \n ");
+             FILE *f = fopen("usb/.grivler_token", "r");
+             fseek (f , 0 , SEEK_END);
+             unsigned int size = ftell(f);
+             rewind(f);
+             memset( ibuffer, 0x00, 32 );
+             if( size == fread(ibuffer, 1, size, f) ){
+               printf(" TOKEN [%d] %s \n", size, ibuffer);
+               ibuffer[size-1] = 0x00;
+               int err = write_sector(fd, 8, 0x60, 0, ibuffer);
+               fprintf(logfd, "write code [%d]\n", err);
+               if( err >= 0 )
+                 system("rm usb/.grivler_token");
+             }
+             fclose(f);
            }
-           else {
-             // save .grive on ram drive
-             // ln on usb
+           {
              printf(" SYNC USING CARD DATA \n ");
+             int size = read_sector(fd, 8, 0x60, 0 , obuffer);
+             if( size == 32 ){
+               sprintf( ibuffer,
+                 "rsync -avzru -e ssh theshark@192.168.0.5:/home/theshark/sync/%s/ ./usb ; "
+                 "rsync -avzru -e ssh ./usb theshark@192.168.0.5:/home/theshark/sync/%s/", obuffer, obuffer);
+
+               printf("%s", ibuffer);
+//               system(ibuffer);
+             }
+
+             // save run sync script with folder = key
            }
-           system("umount /media/usb");
+           system("umount usb");
+           prev_timestamp = timestamp_sec();
          }
-
-
-         memset(ibuffer, 0xFA, 32);
-         memset(ibuffer, 0x3B, 16);
-
-         int err = write_sector(fd, 4, 0x60, 0, ibuffer);
-         fprintf(logfd, "write code [%d]\n", err);
-
-
-         int size = dump(fd, 0x60, 0 , obuffer);
-
-
-         out = obuffer;
-         fprintf(logfd, "size is %d\n", size);
-         while(out-obuffer < size){
-           fprintf(logfd, "%02X ", *out);
-           if((out-obuffer) % 16 == 15 )
-             fprintf(logfd, "\n");
-           *out++;
-         }
-         fprintf(logfd,"\n");
-
+         else
+           printf(" NO USB DEVICE \n");
 
          card_status = 1;
        } else {

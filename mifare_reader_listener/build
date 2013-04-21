@@ -1,1 +1,4 @@
-gcc -o listener main.c
+gcc -o ../run main.c
+pushd ../
+./run
+popd
