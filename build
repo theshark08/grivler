@@ -1,0 +1,4 @@
+pushd mifare_reader_listener
+./build
+popd
+

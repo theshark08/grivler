@@ -13,6 +13,11 @@ unsigned long timestamp_sec() {
 int main(int argc, char * argv[]) {
 
 
+    char addr[100];
+    strcpy( addr, "theshark@192.168.0.5" );
+    if( argc > 1 )
+      strcpy( addr, argv[1] );
+
     int fd = 0;
 
     unsigned char response_buffer[255];
@@ -79,7 +84,7 @@ int main(int argc, char * argv[]) {
 
          serial_to_matrix_iii(cardtype, serial, count_recieved, matrix_serial);
 
-         // wait 5 seconds if it's the same card serial
+         // wait if it's the same card serial
          if( strcmp( prev_card, matrix_serial ) == 0 && timestamp_sec() - prev_timestamp < RETRY_TIMER ) {
            usleep( 1000 * 100 );
            continue;
@@ -118,14 +123,17 @@ int main(int argc, char * argv[]) {
              int size = read_sector(fd, 8, 0x60, 0 , obuffer);
              if( size == 32 ){
                sprintf( ibuffer,
-                 "rsync -avzru -e ssh theshark@192.168.0.5:/home/theshark/sync/%s/ ./usb ; "
-                 "rsync -avzru -e ssh ./usb theshark@192.168.0.5:/home/theshark/sync/%s/", obuffer, obuffer);
+                 "rsync -avzruO -e ssh %s:/home/theshark/sync/%s/ ./usb ; "
+                 "cd usb ; rsync -avzruO -e ssh ./ %s:/home/theshark/sync/%s/",
+                        addr, obuffer, addr, obuffer);
 
-               printf("%s", ibuffer);
-//               system(ibuffer);
+               printf("%s\n", ibuffer);
+               beep(fd, 5);
+               set_led(fd, LED_BOTH);
+//  usleep(1000 * 1000);
+               system(ibuffer);
+               beep(fd, 10);
              }
-
-             // save run sync script with folder = key
            }
            system("umount usb");
            prev_timestamp = timestamp_sec();
