@@ -70,7 +70,7 @@ int main(int argc, char * argv[]) {
     unsigned char ibuffer[1024], obuffer[1024], *in = ibuffer, *out;
 
 
-    system("./display nUSB &");
+    system("killall -9 display ; ./display nUSB &");
 
 
     while (1) {
