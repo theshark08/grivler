@@ -69,15 +69,25 @@ int main(int argc, char * argv[]) {
     char slen, rlen;
     unsigned char ibuffer[1024], obuffer[1024], *in = ibuffer, *out;
 
+
+    system("./display nUSB &");
+
+
     while (1) {
      count_recieved = mifare_select(fd, &cardtype, serial);
 
      if( access("/dev/sda1", R_OK) == 0){
        if( usb_status == 0 ){
           beep(fd, 5); beep(fd, 5); beep(fd, 5);
+          system("killall -9 display ; ./display card &");
           usb_status = 1;
        }
-     } else usb_status = 0;
+     } else {
+        if( usb_status == 1 )
+          system("killall -9 display ; ./display nUSB  &");
+        usb_status = 0;
+     }
+
 
      if (count_recieved > 0 && card_status == 0) {
        if ( (  memcmp(prev_serial, serial, count_recieved ) != 0 )  || (prev_serial_len != count_recieved) || (prev_cardtype != cardtype) ) {
@@ -110,7 +120,10 @@ int main(int argc, char * argv[]) {
              memset( ibuffer, 0x00, 32 );
              if( size == fread(ibuffer, 1, size, f) ){
                printf(" TOKEN [%d] %s \n", size, ibuffer);
-               ibuffer[size-1] = 0x00;
+               unsigned char* p = ibuffer;
+               while( p - ibuffer < 32 )
+                 if( ! ( ( *p >= 'a' && *p <= 'z' ) || ( *p >= '0' && *p <= '9' ) ) )
+                   *p = 0x00;
                int err = write_sector(fd, 8, 0x60, 0, ibuffer);
                fprintf(logfd, "write code [%d]\n", err);
                if( err >= 0 )
@@ -129,10 +142,12 @@ int main(int argc, char * argv[]) {
 
                printf("%s\n", ibuffer);
                beep(fd, 5);
+               system("killall -9 display ; ./display SYNC &");
                set_led(fd, LED_BOTH);
 //  usleep(1000 * 1000);
                system(ibuffer);
                beep(fd, 10);
+               system("killall -9 display ; ./display REM &");
              }
            }
            system("umount usb");

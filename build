@@ -2,3 +2,7 @@ pushd mifare_reader_listener
 ./build
 popd
 
+pushd gpio_display
+./build
+popd
+

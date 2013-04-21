@@ -1,0 +1,1 @@
+cc -o ../display display.c -L/usr/local/lib -L/usr/local/include -lwiringPi
