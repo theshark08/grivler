@@ -2,6 +2,6 @@ grivler
 =======
 
 Description:
-  A USB drive to Google Drive synchronization hub with RFID card authentification.
+  A USB drive to remote SFTP synchronization hub with RFID card authentification.
 
 
